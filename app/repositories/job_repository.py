@@ -14,8 +14,15 @@ class JobRepository:
 
     @staticmethod
     def create_job(db: Session, job: JobCreate):
-        db_job = Job(**job.dict())
+        db_job = Job(
+            **job.model_dump(),
+            is_applied=False,
+            apply_status="Not Applied",
+            is_offered=False,
+        )
+
         db.add(db_job)
         db.commit()
         db.refresh(db_job)
+
         return db_job
