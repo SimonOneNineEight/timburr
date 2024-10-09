@@ -1,32 +1,65 @@
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 import requests
 import time as tm
+import logging
 
 keyword = "Software%2BIntern%2B2025"
 location = "95112"
 
-url = f"https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords={keyword}&location=95112&geoId=104110784&trk=public_jobs_jobs-search-bar_search-submit&original_referer=https%3A%2F%2Fwww.linkedin.com%2Fjobs%2Fsearch%3Fkeywords%3D{keyword}&location%3DSan%2BJose%252C%2BCA%26geoId%3D104110784%26trk%3Dpublic_jobs_jobs-search-bar_search-submit&start=100"
+search_url = f"https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords={keyword}&location=95112&geoId=104110784&trk=public_jobs_jobs-search-bar_search-submit&original_referer=https%3A%2F%2Fwww.linkedin.com%2Fjobs%2Fsearch%3Fkeywords%3D{keyword}&location%3DSan%2BJose%252C%2BCA%26geoId%3D104110784%26trk%3Dpublic_jobs_jobs-search-bar_search-submit&start=100"
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 }
 
 
-def get_with_retry(retries=5, delay=3):
-    for i in range(retries):
+def get_with_retry(url, retries=5, delay=3):
+    for _ in range(retries):
         try:
             r = requests.get(url, headers=headers, timeout=5)
-            print(f"r.status_code:{r.status_code}")
+            logging.info(f"r.status_code:{r.status_code}")
             if r.status_code != requests.codes.ok:
                 tm.sleep(delay)
                 continue
             return BeautifulSoup(r.content, "html.parser")
         except requests.exceptions.Timeout:
-            print(f"Timeout occurred for URL: {url}, retrying in {delay}sec...")
+            logging.error(f"Timeout occurred for URL: {url}, retrying in {delay}sec...")
             tm.sleep(delay)
         except Exception as e:
-            print(f"An error occurred while retrieving the URL: {url}, error: {e}")
+            logging.error(
+                f"An error occurred while retrieving the URL: {url}, error: {e}"
+            )
     return None
+
+
+def get_job_description(job_url):
+    soup = get_with_retry(job_url)
+    if not soup:
+        return None
+
+    div = soup.find("div", class_="description__text description__text--rich")
+
+    if not isinstance(div, Tag):
+        return None
+
+    for element in div.find_all(["span", "a"]):
+        element.decompose()
+
+    for ul in div.find_all("ul"):
+        for li in ul.find_all("li"):
+            li.insert(0, "-")
+
+    text = (
+        div.get_text(separator="\n")
+        .strip()
+        .replace("\n\n", "")
+        .replace("::maker", "")
+        .replace("-\n", "- ")
+        .replace("Show less", "")
+        .replace("Show more", "")
+    )
+
+    return text
 
 
 def transform(soup):
@@ -34,7 +67,7 @@ def transform(soup):
     try:
         divs = soup.find_all("div", class_="base-search-card__info")
     except:
-        print("Empty page, no jobs found")
+        logging.info("Empty page, no jobs found")
         return job_list
 
     for item in divs:
@@ -55,7 +88,8 @@ def transform(soup):
             if date_tag_new
             else ""
         )
-        job_description = ""
+
+        job_description = get_job_description(job_url)
 
         job = {
             "title": title,
@@ -63,7 +97,7 @@ def transform(soup):
             "location": location.text.strip() if location else "",
             "date": date,
             "job_url": job_url,
-            "job_description": job_description,
+            "job_description": job_description or "",
             "applied": 0,
             "hidden": 0,
             "interview": 0,
@@ -76,11 +110,12 @@ def transform(soup):
 
 
 def main():
-    soup = get_with_retry()
-    if soup:
-        job_list = transform(soup)
-        for job in job_list:
-            print(job)
+    jobs_soup = get_with_retry(search_url)
+    jobs = transform(jobs_soup)
+
+    for job in jobs:
+        print(job)
+        print("--------")
 
 
 # --------------------
