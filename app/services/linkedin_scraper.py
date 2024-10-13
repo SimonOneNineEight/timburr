@@ -6,8 +6,6 @@ import logging
 keyword = "Software%2BIntern%2B2025"
 location = "95112"
 
-search_url = f"https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords={keyword}&location=95112&geoId=104110784&trk=public_jobs_jobs-search-bar_search-submit&original_referer=https%3A%2F%2Fwww.linkedin.com%2Fjobs%2Fsearch%3Fkeywords%3D{keyword}&location%3DSan%2BJose%252C%2BCA%26geoId%3D104110784%26trk%3Dpublic_jobs_jobs-search-bar_search-submit&start=100"
-
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 }
@@ -98,10 +96,7 @@ def transform(soup):
             "date": date,
             "job_url": job_url,
             "job_description": job_description or "",
-            "applied": 0,
-            "hidden": 0,
-            "interview": 0,
-            "rejected": 0,
+            "job_posting_id": job_posting_id,
         }
 
         job_list.append(job)
@@ -109,13 +104,33 @@ def transform(soup):
     return job_list
 
 
-def main():
-    jobs_soup = get_with_retry(search_url)
-    jobs = transform(jobs_soup)
+def scrape_jobs():
+    try:
+        all_jobs = []
+        start = 0
+        for i in range(1):
+            start = i * 25
 
-    for job in jobs:
-        print(job)
-        print("--------")
+            search_url = f"https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords={keyword}&location=95112&geoId=104110784&trk=public_jobs_jobs-search-bar_search-submit&original_referer=https%3A%2F%2Fwww.linkedin.com%2Fjobs%2Fsearch%3Fkeywords%3D{keyword}&location%3DSan%2BJose%252C%2BCA%26geoId%3D104110784%26trk%3Dpublic_jobs_jobs-search-bar_search-submit&start={start}"
+
+            soup = get_with_retry(search_url)
+            job_list = transform(soup)
+            all_jobs += job_list
+        return all_jobs
+
+    except Exception as e:
+        logging.error(f"An error occurred while scraping, error: {e}")
+    return []
+
+
+def main():
+    return None
+    # jobs_soup = get_with_retry()
+    # jobs = transform(jobs_soup)
+    #
+    # for job in jobs:
+    #     print(job)
+    #     print("--------")
 
 
 # --------------------

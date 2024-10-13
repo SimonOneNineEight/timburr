@@ -1,3 +1,4 @@
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.database.models import Job
 from app.database.schemas import JobCreate
@@ -9,7 +10,7 @@ class JobRepository:
         return db.query(Job).filter(Job.id == job_id).first()
 
     @staticmethod
-    def get_all_jobs(db: Session, skip: int = 0, limit: int = 10):
+    def get_all_jobs(db: Session, skip: int = 0, limit: int = 100):
         return db.query(Job).offset(skip).limit(limit).all()
 
     @staticmethod
@@ -24,10 +25,21 @@ class JobRepository:
 
     @staticmethod
     def create_jobs(db: Session, jobs: list[JobCreate]):
-        jobs_data = [Job(**job.model_dump()) for job in jobs]
+        print("Start creating")
+        jobs_data = []
+        for job in jobs:
+            if isinstance(job, BaseModel):
+                jobs_data.append(Job(**job.model_dump()))
+            else:
+                jobs_data.append(Job(**job))
 
         db.add_all(jobs_data)
         db.commit()
-        db.refresh(jobs_data)
+        # db.refresh(jobs_data)
 
         return jobs_data
+
+    @staticmethod
+    def get_all_job_posting_ids(db):
+        job_posting_ids = db.query(Job.job_posting_id).all()
+        return job_posting_ids
