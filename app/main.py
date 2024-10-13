@@ -1,4 +1,3 @@
-import logging
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
@@ -7,7 +6,9 @@ from app.database.db_connection import engine, SessionLocal, get_db, init_db
 from app.database.schemas import JobCreate
 from app.repositories.job_repository import JobRepository
 from app.services.job_services import get_new_jobs
+from app.services.scheduler import start_scheduler
 
+scheduler = start_scheduler()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -15,10 +16,10 @@ async def lifespan(app: FastAPI):
     init_db()
     yield
     # shutdown stage
+    scheduler.shutdown()
 
 
 app = FastAPI(lifespan=lifespan)
-
 
 @app.get("/")
 async def root():

@@ -25,7 +25,6 @@ class JobRepository:
 
     @staticmethod
     def create_jobs(db: Session, jobs: list[JobCreate]):
-        print("Start creating")
         jobs_data = []
         for job in jobs:
             if isinstance(job, BaseModel):
