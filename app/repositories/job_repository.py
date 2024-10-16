@@ -1,12 +1,12 @@
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from app.database.models import Job
-from app.database.schemas import JobCreate
+from app.database.models import Job, JobDescription
+from app.database.schemas import JobCreate, JobDescriptionCreate
 
 
 class JobRepository:
     @staticmethod
-    def get_job(db: Session, job_id: int):
+    def get_job(db: Session, job_id: str):
         return db.query(Job).filter(Job.id == job_id).first()
 
     @staticmethod
@@ -39,6 +39,24 @@ class JobRepository:
         return jobs_data
 
     @staticmethod
-    def get_all_job_posting_ids(db):
+    def get_all_job_posting_ids(db: Session):
         job_posting_ids = db.query(Job.job_posting_id).all()
         return job_posting_ids
+
+    @staticmethod
+    def create_job_description(db: Session, job_description: JobDescriptionCreate):
+        db_job_description = JobDescription(**job_description.model_dump())
+
+        db.add(db_job_description)
+        db.commit()
+        db.refresh(db_job_description)
+
+        return db_job_description
+
+    @staticmethod
+    def get_job_description_by_id(db: Session, job_posting_id):
+        return (
+            db.query(JobDescription)
+            .filter(JobDescription.job_posting_id == job_posting_id)
+            .first()
+        )

@@ -87,15 +87,12 @@ def transform(soup):
             else ""
         )
 
-        job_description = get_job_description(job_url)
-
         job = {
             "title": title,
             "company": company.text.strip().replace("\n", " ") if company else "",
             "location": location.text.strip() if location else "",
             "date": date,
             "job_url": job_url,
-            "job_description": job_description or "",
             "job_posting_id": job_posting_id,
         }
 

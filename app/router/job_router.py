@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database.db_connection import engine, SessionLocal, get_db, init_db
 from app.database.schemas import JobCreate
+from app.exceptions import JobNotFoundError, ScrapeFailedError
 from app.repositories.job_repository import JobRepository
-from app.services.job_services import get_new_jobs
+from app.services.job_services import get_new_jobs, scrape_job_description
 
 router = APIRouter()
 
@@ -28,3 +29,17 @@ def sync_new_jobs(db: Session = Depends(get_db)):
         return {"message": f"Scraped {result["count"]} job posts and stored complete!"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@router.get("/job_description/{job_id}")
+def get_job_description(job_id:str, db: Session = Depends(get_db)):
+    try:
+        job_description = scrape_job_description(job_id, db)
+        return job_description 
+    except JobNotFoundError:
+        raise HTTPException(status_code=404, detail="Job id not found")
+    except ScrapeFailedError:
+        raise HTTPException(status_code=500, detail="Scrape failed")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+

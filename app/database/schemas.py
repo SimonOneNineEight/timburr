@@ -10,3 +10,8 @@ class JobCreate(BaseModel):
     job_url: str
     date: date
     job_description: str
+
+
+class JobDescriptionCreate(BaseModel):
+    job_posting_id: str
+    job_description: str
